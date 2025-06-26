@@ -1,27 +1,32 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { WebView } from 'react-native-webview';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+const webURL = 'https://spareconnect.in/dev/';
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+const App = () => {
+  const [loading, setLoading] = useState<boolean>(true);
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
+    <View style={{ flex: 1 }}>
+      {loading && (
+        <ActivityIndicator style={styles.loader} size="large" color="blue" />
+      )}
+      <WebView
+        source={{ uri: webURL }}
+        onLoadEnd={e => setLoading(false)}
+        style={{ flex: 1 }}
+      />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  loader: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -25,
+    marginTop: -25,
   },
 });
 
