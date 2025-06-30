@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   ActivityIndicator,
@@ -14,25 +14,58 @@ import { WebView } from 'react-native-webview';
 const webURL = 'https://spareconnect.in/dev/';
 
 const App = () => {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const webviewRef = useRef<any>(null);
+  const getLocalStorage = (key: string) => {
+    if (webviewRef.current) {
+      webviewRef.current.injectJavaScript(`
+        (function() {
+          const value = localStorage.getItem('${key}');
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCALSTORAGE', key: '${key}', value }));
+        })();
+        true;
+      `);
+    }
+  };
+
+  getLocalStorage('wp_user_id'); // Example usage to get localStorage item
+
+  const setLocalStorage = (key: string, value: string) => {
+    if (webviewRef.current) {
+      webviewRef.current.injectJavaScript(`
+        (function() {
+          localStorage.setItem('${key}', '${value}');
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'SET_LOCALSTORAGE', key: '${key}', value: '${value}' }));
+        })();
+        true;
+      `);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f5f5f5" />
-
-      {/* Optional: App header */}
-      {/* <View style={styles.header}>
-        <Text style={styles.headerText}>SpareConnect</Text>
-      </View> */}
-
       <View style={styles.webviewContainer}>
         <WebView
+          ref={webviewRef}
           source={{ uri: webURL }}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
           onError={() => setLoading(false)}
           onHttpError={() => setLoading(false)}
           style={{ flex: 1 }}
+          onMessage={event => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              console.log('WebView message:', data);
+              // Handle messages
+            } catch (e) {
+              console.warn(
+                'Invalid message from WebView:',
+                event.nativeEvent.data,
+              );
+            }
+          }}
         />
         {loading && (
           <View style={styles.overlayContainer}>
@@ -48,11 +81,6 @@ const App = () => {
           </View>
         )}
       </View>
-
-      {/* Optional footer */}
-      {/* <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2025 SpareConnect</Text>
-      </View> */}
     </SafeAreaView>
   );
 };
