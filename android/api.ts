@@ -37,7 +37,7 @@ const apiClient = axios.create({
 // Dummy POST request
 export const saveDeviceId = async ({ user_id }: { user_id: string }) => {
   try {
-    const device_id = await getUniqueId(); // await getDeviceFCMToken() || getUniqueId();
+    const device_id = await getDeviceFCMToken(); //  getUniqueId();
     if (!device_id) {
       throw new Error('Device ID not available');
     }

@@ -10,7 +10,9 @@ import {
   Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import messaging, { firebase } from '@react-native-firebase/messaging';
+import messaging from '@react-native-firebase/messaging';
+import notifee, { AndroidImportance } from '@notifee/react-native';
+import Toast from 'react-native-toast-message';
 import { saveDeviceId } from './android/api';
 
 const webURL = 'https://spareconnect.in/dev/';
@@ -20,7 +22,6 @@ const App = () => {
   const [registered, setRegistered] = useState(false);
   const webviewRef = useRef<any>(null);
 
-  // Function to ask WebView for localStorage value
   const getLocalStorage = (key: string) => {
     if (webviewRef.current) {
       webviewRef.current.injectJavaScript(`
@@ -53,36 +54,40 @@ const App = () => {
 
     requestPermission();
 
-    // Foreground listener
+    // Foreground notifications → show toast
     const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
-      console.log('FCM Message received in foreground:', remoteMessage);
+      console.log('📩 Foreground FCM:', remoteMessage);
+      Toast.show({
+        type: 'success',
+        text1: remoteMessage.notification?.title || 'New Message',
+        text2: remoteMessage.notification?.body || '',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+      });
     });
 
-    // Background + quit state handler (if you want to navigate or handle data)
+    // Background handler → manually display system notification if data-only
     messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('FCM Message handled in background:', remoteMessage);
-      // Handle background logic here
+      console.log('⚡ Background FCM:', remoteMessage);
+      await displayNotification(remoteMessage);
     });
 
-    // Handle when app opened from quit state by tapping notification
+    // Opened from quit
     messaging()
       .getInitialNotification()
       .then(remoteMessage => {
         if (remoteMessage) {
-          console.log(
-            'App opened from quit state by notification:',
-            remoteMessage,
-          );
+          console.log('🚀 Opened from quit:', remoteMessage);
+          handleNotificationAction(remoteMessage);
         }
       });
 
-    // Handle when app brought to foreground from background by tapping notification
+    // Opened from background
     const unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
       remoteMessage => {
-        console.log(
-          'App opened from background by notification:',
-          remoteMessage,
-        );
+        console.log('🚀 Opened from background:', remoteMessage);
+        handleNotificationAction(remoteMessage);
       },
     );
 
@@ -91,6 +96,44 @@ const App = () => {
       unsubscribeOnNotificationOpened();
     };
   }, []);
+
+  const displayNotification = async (remoteMessage: any) => {
+    // Use notifee to show system notification manually
+    await notifee.createChannel({
+      id: 'default',
+      name: 'Default Channel',
+      importance: AndroidImportance.HIGH,
+    });
+
+    await notifee.displayNotification({
+      title: remoteMessage.notification?.title || 'Background Message',
+      body: remoteMessage.notification?.body || 'You have a new message',
+      android: {
+        channelId: 'default',
+        smallIcon: 'ic_launcher', // Ensure this icon exists in android/app/src/main/res
+      },
+    });
+  };
+
+  const handleNotificationAction = (remoteMessage: any) => {
+    if (remoteMessage?.data?.url) {
+      if (webviewRef.current) {
+        webviewRef.current.injectJavaScript(`
+          window.location.href = '${remoteMessage.data.url}';
+          true;
+        `);
+      }
+    } else {
+      Toast.show({
+        type: 'info',
+        text1: remoteMessage.notification?.title || 'Opened Notification',
+        text2: remoteMessage.notification?.body || '',
+        position: 'top',
+        visibilityTime: 4000,
+        autoHide: true,
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -116,16 +159,13 @@ const App = () => {
                   saveDeviceId({
                     user_id: data.value,
                   }).then(response => {
-                    console.log('Device ID saved successfully:', response);
+                    console.log('Device ID saved:', response);
                     setRegistered(true);
                   });
                 }
               }
             } catch (e) {
-              console.warn(
-                'Invalid message from WebView:',
-                event.nativeEvent.data,
-              );
+              console.warn('Invalid WebView message:', event.nativeEvent.data);
             }
           }}
         />
@@ -143,6 +183,8 @@ const App = () => {
           </View>
         )}
       </View>
+
+      <Toast topOffset={Platform.OS === 'android' ? 60 : 40} />
     </SafeAreaView>
   );
 };
