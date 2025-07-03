@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   ActivityIndicator,
@@ -10,37 +10,87 @@ import {
   Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import messaging, { firebase } from '@react-native-firebase/messaging';
+import { saveDeviceId } from './android/api';
 
 const webURL = 'https://spareconnect.in/dev/';
 
 const App = () => {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const [registered, setRegistered] = useState(false);
   const webviewRef = useRef<any>(null);
+
+  // Function to ask WebView for localStorage value
   const getLocalStorage = (key: string) => {
     if (webviewRef.current) {
       webviewRef.current.injectJavaScript(`
         (function() {
           const value = localStorage.getItem('${key}');
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'GET_LOCALSTORAGE', key: '${key}', value }));
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'GET_LOCALSTORAGE',
+            key: '${key}',
+            value: value
+          }));
         })();
         true;
       `);
     }
   };
 
-  getLocalStorage('wp_user_id'); // Example usage to get localStorage item
+  useEffect(() => {
+    const requestPermission = async () => {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-  const setLocalStorage = (key: string, value: string) => {
-    if (webviewRef.current) {
-      webviewRef.current.injectJavaScript(`
-        (function() {
-          localStorage.setItem('${key}', '${value}');
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'SET_LOCALSTORAGE', key: '${key}', value: '${value}' }));
-        })();
-        true;
-      `);
-    }
-  };
+      if (enabled) {
+        console.log('Notification permission granted.');
+      } else {
+        console.log('Notification permission denied.');
+      }
+    };
+
+    requestPermission();
+
+    // Foreground listener
+    const unsubscribeOnMessage = messaging().onMessage(async remoteMessage => {
+      console.log('FCM Message received in foreground:', remoteMessage);
+    });
+
+    // Background + quit state handler (if you want to navigate or handle data)
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      console.log('FCM Message handled in background:', remoteMessage);
+      // Handle background logic here
+    });
+
+    // Handle when app opened from quit state by tapping notification
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        if (remoteMessage) {
+          console.log(
+            'App opened from quit state by notification:',
+            remoteMessage,
+          );
+        }
+      });
+
+    // Handle when app brought to foreground from background by tapping notification
+    const unsubscribeOnNotificationOpened = messaging().onNotificationOpenedApp(
+      remoteMessage => {
+        console.log(
+          'App opened from background by notification:',
+          remoteMessage,
+        );
+      },
+    );
+
+    return () => {
+      unsubscribeOnMessage();
+      unsubscribeOnNotificationOpened();
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,8 +99,10 @@ const App = () => {
         <WebView
           ref={webviewRef}
           source={{ uri: webURL }}
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
+          onLoadEnd={() => {
+            setLoading(false);
+            getLocalStorage('wp_user_id');
+          }}
           onError={() => setLoading(false)}
           onHttpError={() => setLoading(false)}
           style={{ flex: 1 }}
@@ -58,7 +110,17 @@ const App = () => {
             try {
               const data = JSON.parse(event.nativeEvent.data);
               console.log('WebView message:', data);
-              // Handle messages
+
+              if (data.key === 'wp_user_id' && data.value) {
+                if (!registered) {
+                  saveDeviceId({
+                    user_id: data.value,
+                  }).then(response => {
+                    console.log('Device ID saved successfully:', response);
+                    setRegistered(true);
+                  });
+                }
+              }
             } catch (e) {
               console.warn(
                 'Invalid message from WebView:',
@@ -91,30 +153,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
-  header: {
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#007BFF',
-  },
-  headerText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
   webviewContainer: {
     flex: 1,
     position: 'relative',
-  },
-  footer: {
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#eaeaea',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#888',
   },
   overlayContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -144,15 +185,3 @@ const styles = StyleSheet.create({
 });
 
 export default App;
-// This code is a React Native application that uses the WebView component to display a web page.
-// It includes a loading indicator that appears while the web page is loading, and it has a simple header and footer.
-// The application is styled to provide a clean and modern look, with a logo displayed during loading.
-// The WebView handles various events such as loading start, end, and errors, ensuring a smooth user experience.
-// The styles are defined using StyleSheet, and the application is responsive to different screen sizes and platforms (iOS and Android).
-// The application is designed to be user-friendly, with clear loading indicators and a consistent color scheme.
-// The use of SafeAreaView ensures that the content is displayed correctly on devices with notches or rounded corners.
-// The application is ready to be run on both iOS and Android devices, providing a seamless experience across platforms.
-// The code is structured to be maintainable and easy to understand, with clear comments and organized styles.
-// The WebView component is imported from 'react-native-webview', which is a popular library for rendering web content in React Native applications.
-// The application can be further customized by modifying the webURL, styles, and other components as needed.
-// This code serves as a solid foundation for building a React Native application that integrates web content, making it suitable for various use cases such as displaying

@@ -1,4 +1,4 @@
-package com.webviewapp
+package com.spareconnect
 
 import android.app.Application
 import com.facebook.react.PackageList
