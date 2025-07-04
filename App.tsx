@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import messaging from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+
 import Toast from 'react-native-toast-message';
 import { saveDeviceId } from './android/api';
 
@@ -68,10 +68,6 @@ const App = () => {
     });
 
     // Background handler → manually display system notification if data-only
-    messaging().setBackgroundMessageHandler(async remoteMessage => {
-      console.log('⚡ Background FCM:', remoteMessage);
-      await displayNotification(remoteMessage);
-    });
 
     // Opened from quit
     messaging()
@@ -96,24 +92,6 @@ const App = () => {
       unsubscribeOnNotificationOpened();
     };
   }, []);
-
-  const displayNotification = async (remoteMessage: any) => {
-    // Use notifee to show system notification manually
-    await notifee.createChannel({
-      id: 'default',
-      name: 'Default Channel',
-      importance: AndroidImportance.HIGH,
-    });
-
-    await notifee.displayNotification({
-      title: remoteMessage.notification?.title || 'Background Message',
-      body: remoteMessage.notification?.body || 'You have a new message',
-      android: {
-        channelId: 'default',
-        smallIcon: 'ic_launcher', // Ensure this icon exists in android/app/src/main/res
-      },
-    });
-  };
 
   const handleNotificationAction = (remoteMessage: any) => {
     if (remoteMessage?.data?.url) {
