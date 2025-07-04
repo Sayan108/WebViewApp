@@ -93,23 +93,21 @@ const App = () => {
     };
   }, []);
 
+  const goToRoute = () => {
+    try {
+      const targetUrl = webURL + 'my-account/custom-requests/';
+      webviewRef.current?.loadUrl(targetUrl);
+    } catch (error) {
+      console.error('Error navigating to route:', error);
+    }
+  };
+
   const handleNotificationAction = (remoteMessage: any) => {
-    if (remoteMessage?.data?.url) {
+    // if (remoteMessage?.data?.url)
+    {
       if (webviewRef.current) {
-        webviewRef.current.injectJavaScript(`
-          window.location.href = '${remoteMessage.data.url}';
-          true;
-        `);
+        goToRoute();
       }
-    } else {
-      Toast.show({
-        type: 'info',
-        text1: remoteMessage.notification?.title || 'Opened Notification',
-        text2: remoteMessage.notification?.body || '',
-        position: 'top',
-        visibilityTime: 4000,
-        autoHide: true,
-      });
     }
   };
 

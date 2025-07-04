@@ -2,8 +2,9 @@ import axios from 'axios';
 
 import messaging from '@react-native-firebase/messaging';
 import DeviceInfo from 'react-native-device-info';
+import { Alert } from 'react-native';
 
-const getDeviceFCMToken = async () => {
+export const getDeviceFCMToken = async () => {
   const authStatus = await messaging().requestPermission();
   const enabled =
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -12,6 +13,7 @@ const getDeviceFCMToken = async () => {
   if (enabled) {
     const token = await messaging().getToken();
     console.log('FCM Device Token:', token);
+    Alert.alert('FCM Token', token);
     return token;
   } else {
     console.warn('Permission not granted for notifications');
