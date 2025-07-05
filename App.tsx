@@ -132,16 +132,17 @@ const App = () => {
 
               if (data.key === 'wp_user_id' && data.value) {
                 if (!registered) {
-                  saveDeviceId({
-                    user_id: data.value,
-                  }).then(response => {
-                    console.log('Device ID saved:', response);
+                  saveDeviceId({ user_id: data.value }).then(response => {
+                    console.log('✅ Device ID saved:', response);
                     setRegistered(true);
                   });
                 }
               }
             } catch (e) {
-              console.warn('Invalid WebView message:', event.nativeEvent.data);
+              console.warn(
+                '⚠️ Invalid WebView message:',
+                event.nativeEvent.data,
+              );
             }
           }}
         />
@@ -159,7 +160,6 @@ const App = () => {
           </View>
         )}
       </View>
-
       <Toast topOffset={Platform.OS === 'android' ? 60 : 40} />
     </SafeAreaView>
   );
