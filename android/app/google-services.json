@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "202396919147",
-    "project_id": "spareconnect",
-    "storage_bucket": "spareconnect.firebasestorage.app"
+    "project_number": "1074257984354",
+    "project_id": "spare-connect-4ee07",
+    "storage_bucket": "spare-connect-4ee07.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:202396919147:android:c811b1178b1d5041c1582e",
+        "mobilesdk_app_id": "1:1074257984354:android:8ab45f08bfee820903ca3b",
         "android_client_info": {
           "package_name": "com.spareconnect"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBH9j2cOTW3lbkLH1al14340X9FV1qiFu4"
+          "current_key": "AIzaSyCdseXwKngpFYzzPLCGMi5MfX1YTwSk44w"
         }
       ],
       "services": {

@@ -13,7 +13,7 @@ import { WebView } from 'react-native-webview';
 import messaging from '@react-native-firebase/messaging';
 
 import Toast from 'react-native-toast-message';
-import { saveDeviceId } from './android/api';
+import { saveDeviceId } from './api';
 
 const webURL = 'https://spareconnect.in/dev/';
 
